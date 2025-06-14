@@ -1,0 +1,53 @@
+<resources>
+    <string name="app_name">Restaurant Menu</string>
+    <string name="profil">Profil</string>
+    <string name="tambah_menu">Tambah Menu</string>
+    <string name="nama">Nama Menu</string>
+    <string name="coba_lagi">Coba Lagi</string>
+    <string name="gambar">Gambar %1$s</string>
+    <string name="deskripsi">Deskripsi</string>
+    <string name="harga">Harga</string>
+    <string name="simpan">Simpan</string>
+    <string name="batal">Batal</string>
+    <string name="tutup">Tutup</string>
+    <string name="error">Gagal memuat data</string>
+    <string name="hapus">Hapus</string>
+    <string name="konfirmasi_hapus">Konfirmasi Hapus</string>
+    <string name="pesan_hapus">Apakah Anda yakin ingin menghapus menu ini? Tindakan ini tidak dapat dibatalkan.</string>
+    <string name="edit">Edit</string>
+    <string name="logout">Logout</string>
+    <string name="edit_menu">Edit Menu</string>
+    <string name="gambar_menu">Gambar Menu</string>
+    <string name="empty_menu_message">Belum ada menu. Klik tombol tambah (+) untuk menambahkan menu baru.</string>
+    <string name="profil_picture">Foto Profil</string>
+    <string name="not_logged_in_message">Anda harus login untuk melakukan tindakan ini.</string>
+    <string name="toggle_display_mode">Toggle Display Mode</string>
+
+    <string name="info_app">Informasi Aplikasi</string>
+    <string name="about_app_title">Tentang Aplikasi</string>
+    <string name="app_version">Versi Aplikasi: 1.0.0</string>
+    <string name="about_app_description">
+        Selamat datang di Restaurant Menu, aplikasi inovatif yang dirancang khusus untuk mempermudah
+        pengelolaan daftar menu restoran Anda. Dengan antarmuka yang intuitif dan responsif, Anda bisa
+        dengan mudah melihat, menambahkan, mengedit, dan menghapus setiap item menu.
+        Kami menghadirkan pengalaman pengguna yang modern berkat teknologi Jetpack Compose,
+        menjamin navigasi yang mulus dan visual yang menarik di berbagai perangkat.
+    </string>
+    <string name="menu_app_highlight_title">Jelajahi Dunia Kuliner di Ujung Jari Anda!</string>
+    <string name="menu_app_highlight_content">
+        Aplikasi ini menampilkan beragam kategori menu, mulai dari hidangan utama yang mengenyangkan
+        hingga hidangan penutup yang menggoda. Setiap item dilengkapi dengan foto berkualitas tinggi,
+        deskripsi lengkap, dan harga yang jelas, membantu pelanggan membuat pilihan terbaik.
+    </string>
+    <string name="food_drink_info_title">Pilihan Makanan dan Minuman Terbaik:</string>
+    <string name="food_drink_info_content">
+        Kami bangga menyajikan daftar makanan dan minuman yang bervariasi untuk memuaskan setiap selera.
+        Temukan hidangan klasik yang sudah dikenal atau cicipi kreasi baru yang unik.
+        Dari makanan pembuka yang renyah, hidangan utama yang kaya rasa seperti Nasi Goreng Spesial
+        dan Mie Ayam Komplit, hingga minuman segar seperti Es Kopi Susu Gula Aren,
+        setiap item dirancang untuk pengalaman bersantap yang tak terlupakan.
+        Kami memastikan detail menu Anda selalu terbarui dan mudah diakses.
+    </string>
+    <string name="developer_info">Dikembangkan oleh Sharla Devrina Aurelliya</string>
+    <string name="back_button_desc">Kembali</string>
+</resources>
