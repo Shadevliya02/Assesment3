@@ -22,7 +22,6 @@
     <string name="profil_picture">Foto Profil</string>
     <string name="not_logged_in_message">Anda harus login untuk melakukan tindakan ini.</string>
     <string name="toggle_display_mode">Toggle Display Mode</string>
-
     <string name="info_app">Informasi Aplikasi</string>
     <string name="about_app_title">Tentang Aplikasi</string>
     <string name="app_version">Versi Aplikasi: 1.0.0</string>
