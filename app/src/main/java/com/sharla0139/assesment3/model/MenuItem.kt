@@ -7,5 +7,4 @@ data class MenuItem(
     val harga: Long,
     val foto: String,
     val userId: String = ""
-
 )
