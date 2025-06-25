@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
+import android.location.Geocoder
 import android.location.Location
 import android.os.Build
 import android.os.Looper
@@ -41,6 +42,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -50,6 +52,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -106,6 +109,7 @@ import com.sharla0139.assesment3.network.UserDataStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.io.IOException
 import java.util.Locale
 
 enum class DisplayMode { LIST, GRID }
@@ -138,6 +142,10 @@ fun MainScreen(onAboutClick: () -> Unit) {
     }
 
     var currentLocation by remember { mutableStateOf<Location?>(null) }
+    var currentLocationName by remember { mutableStateOf<String?>(null) }
+    // NEW: State for showing location detail dialog
+    var showLocationDetailDialog by remember { mutableStateOf(false) }
+
 
     val fusedLocationClient: FusedLocationProviderClient = remember {
         LocationServices.getFusedLocationProviderClient(context)
@@ -149,6 +157,9 @@ fun MainScreen(onAboutClick: () -> Unit) {
                 result.lastLocation?.let { location ->
                     currentLocation = location
                     Log.d("LOCATION", "Lat: ${location.latitude}, Lng: ${location.longitude}")
+                    CoroutineScope(Dispatchers.IO).launch {
+                        currentLocationName = getLocationName(context, location.latitude, location.longitude)
+                    }
                 }
             }
         }
@@ -209,12 +220,27 @@ fun MainScreen(onAboutClick: () -> Unit) {
                 title = {
                     Column {
                         Text(text = stringResource(id = R.string.app_name))
-                        currentLocation?.let {
+                        currentLocationName?.let {
                             Text(
-                                text = "Lat: %.2f, Lng: %.2f".format(it.latitude, it.longitude),
+                                text = it,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(start = 0.dp)
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier
+                                    .padding(start = 0.dp)
+                                    // NEW: Make location text clickable to show full details
+                                    .clickable { showLocationDetailDialog = true }
+                            )
+                        } ?: run {
+                            Text(
+                                text = stringResource(R.string.getting_location),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                                modifier = Modifier
+                                    .padding(start = 0.dp)
+                                    // NEW: Make getting location text clickable too
+                                    .clickable { showLocationDetailDialog = true }
                             )
                         }
                     }
@@ -345,6 +371,17 @@ fun MainScreen(onAboutClick: () -> Unit) {
                 }
             )
         }
+
+        // NEW: Location Detail Dialog
+        if (showLocationDetailDialog) {
+            LocationDetailDialog(
+                locationName = currentLocationName,
+                latitude = currentLocation?.latitude,
+                longitude = currentLocation?.longitude,
+                onDismissRequest = { showLocationDetailDialog = false }
+            )
+        }
+
 
         if (viewModel.isLoading.value) {
             Box(
@@ -813,4 +850,68 @@ private fun stopLocationUpdates(
 ) {
     fusedLocationClient.removeLocationUpdates(locationCallback)
     Log.d("LOCATION", "Menghentikan pembaruan lokasi")
+}
+
+@Suppress("DEPRECATION")
+private fun getLocationName(context: Context, latitude: Double, longitude: Double): String? {
+    val geocoder = Geocoder(context, Locale.getDefault())
+    return try {
+        val addresses = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            geocoder.getFromLocation(latitude, longitude, 1)
+        } else {
+            geocoder.getFromLocation(latitude, longitude, 1)
+        }
+
+        if (!addresses.isNullOrEmpty()) {
+            val address = addresses[0]
+            val fullAddress = StringBuilder()
+            // Loop through address lines to get a more complete address
+            for (i in 0..address.maxAddressLineIndex) {
+                fullAddress.append(address.getAddressLine(i)).append("\n")
+            }
+            fullAddress.toString().trim() // Remove trailing newline if any
+        } else {
+            null
+        }
+    } catch (e: IOException) {
+        Log.e("LOCATION_NAME", "Geocoder service not available or network error: ${e.message}")
+        null
+    } catch (e: IllegalArgumentException) {
+        Log.e("LOCATION_NAME", "Invalid lat/long: ${e.message}")
+        null
+    }
+}
+
+// NEW: Composable for Location Detail Dialog
+@Composable
+fun LocationDetailDialog(
+    locationName: String?,
+    latitude: Double?,
+    longitude: Double?,
+    onDismissRequest: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismissRequest,
+        title = { Text(text = stringResource(R.string.your_current_location)) },
+        text = {
+            Column {
+                if (locationName != null && locationName.isNotBlank()) {
+                    Text(text = stringResource(R.string.full_address), fontWeight = FontWeight.Bold)
+                    Text(text = locationName)
+                    Spacer(modifier = Modifier.height(8.dp))
+                } else {
+                    Text(text = stringResource(R.string.address_not_found))
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                Text(text = stringResource(R.string.coordinates), fontWeight = FontWeight.Bold)
+                Text(text = "Latitude: ${latitude ?: "N/A"}")
+                Text(text = "Longitude: ${longitude ?: "N/A"}")
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismissRequest) {
+                Text(stringResource(R.string.tutup))
+            }
+        }
+    )
 }

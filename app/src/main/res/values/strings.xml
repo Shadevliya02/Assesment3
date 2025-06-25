@@ -49,4 +49,9 @@
     </string>
     <string name="developer_info">Dikembangkan oleh Sharla Devrina Aurelliya</string>
     <string name="back_button_desc">Kembali</string>
+    <string name="getting_location">Mendapatkan lokasi...</string>
+    <string name="your_current_location">Lokasi Anda Saat Ini</string>
+    <string name="full_address">Alamat Lengkap:</string>
+    <string name="coordinates">Koordinat:</string>
+    <string name="address_not_found">Alamat tidak ditemukan.</string>
 </resources>
