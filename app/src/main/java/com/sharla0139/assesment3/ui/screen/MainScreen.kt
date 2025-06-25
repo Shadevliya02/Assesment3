@@ -1,14 +1,20 @@
 package com.sharla0139.assesment3.ui.screen
 
+import android.Manifest
 import android.content.ContentResolver
 import android.content.Context
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
+import android.location.Location
 import android.os.Build
+import android.os.Looper
 import android.provider.MediaStore
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -47,6 +53,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -66,6 +73,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
@@ -80,6 +88,12 @@ import com.canhub.cropper.CropImageContract
 import com.canhub.cropper.CropImageContractOptions
 import com.canhub.cropper.CropImageOptions
 import com.canhub.cropper.CropImageView
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
@@ -97,6 +111,7 @@ import java.util.Locale
 enum class DisplayMode { LIST, GRID }
 enum class AppScreen { MAIN, ABOUT }
 
+@RequiresApi(Build.VERSION_CODES.N)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(onAboutClick: () -> Unit) {
@@ -122,10 +137,88 @@ fun MainScreen(onAboutClick: () -> Unit) {
         }
     }
 
+    var currentLocation by remember { mutableStateOf<Location?>(null) }
+
+    val fusedLocationClient: FusedLocationProviderClient = remember {
+        LocationServices.getFusedLocationProviderClient(context)
+    }
+
+    val locationCallback = remember {
+        object : LocationCallback() {
+            override fun onLocationResult(result: LocationResult) {
+                result.lastLocation?.let { location ->
+                    currentLocation = location
+                    Log.d("LOCATION", "Lat: ${location.latitude}, Lng: ${location.longitude}")
+                }
+            }
+        }
+    }
+
+    val requestPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        when {
+            permissions.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false) -> {
+                Toast.makeText(context, "Izin lokasi akurat diberikan", Toast.LENGTH_SHORT).show()
+                startLocationUpdates(fusedLocationClient, locationCallback, context)
+            }
+            permissions.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false) -> {
+                Toast.makeText(context, "Izin lokasi perkiraan diberikan", Toast.LENGTH_SHORT).show()
+                startLocationUpdates(fusedLocationClient, locationCallback, context)
+            }
+            else -> {
+                Toast.makeText(context, "Izin lokasi ditolak", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        when {
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED -> {
+                startLocationUpdates(fusedLocationClient, locationCallback, context)
+            }
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED -> {
+                startLocationUpdates(fusedLocationClient, locationCallback, context)
+            }
+            else -> {
+                requestPermissionLauncher.launch(
+                    arrayOf(
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                    )
+                )
+            }
+        }
+    }
+
+    DisposableEffect(fusedLocationClient) {
+        onDispose {
+            stopLocationUpdates(fusedLocationClient, locationCallback)
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = stringResource(id = R.string.app_name)) },
+                title = {
+                    Column {
+                        Text(text = stringResource(id = R.string.app_name))
+                        currentLocation?.let {
+                            Text(
+                                text = "Lat: %.2f, Lng: %.2f".format(it.latitude, it.longitude),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(start = 0.dp)
+                            )
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.mediumTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.primary
@@ -681,4 +774,43 @@ private fun getCroppedImage(
         val source = ImageDecoder.createSource(resolver, uri)
         ImageDecoder.decodeBitmap(source)
     }
+}
+
+private fun startLocationUpdates(
+    fusedLocationClient: FusedLocationProviderClient,
+    locationCallback: LocationCallback,
+    context: Context
+) {
+    val locationRequest = LocationRequest.Builder(
+        Priority.PRIORITY_HIGH_ACCURACY,
+        10000
+    )
+        .setMinUpdateIntervalMillis(5000)
+        .build()
+
+    if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+    ) {
+        try {
+            fusedLocationClient.requestLocationUpdates(
+                locationRequest,
+                locationCallback,
+                Looper.getMainLooper()
+            )
+            Log.d("LOCATION", "Memulai pembaruan lokasi")
+        } catch (e: SecurityException) {
+            Log.e("LOCATION", "Izin lokasi tidak diberikan: ${e.message}")
+            Toast.makeText(context, "Izinkan lokasi agar fitur berfungsi", Toast.LENGTH_LONG).show()
+        }
+    } else {
+        Log.e("LOCATION", "Izin lokasi tidak tersedia untuk memulai pembaruan")
+    }
+}
+
+private fun stopLocationUpdates(
+    fusedLocationClient: FusedLocationProviderClient,
+    locationCallback: LocationCallback
+) {
+    fusedLocationClient.removeLocationUpdates(locationCallback)
+    Log.d("LOCATION", "Menghentikan pembaruan lokasi")
 }
